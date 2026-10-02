@@ -1,0 +1,15 @@
+# --- core (runs the mock demo, no GPU needed) ---
+numpy>=1.26
+networkx>=3.2
+pyyaml>=6.0
+torch>=2.2
+pytest>=8.0
+# --- real models (uncomment when you move beyond the mock) ---
+# transformers>=4.45        # Video-LLaVA / Qwen2.5-VL backbones
+# accelerate>=0.34
+# sentence-transformers>=3.0  # better entity embeddings than the hashing fallback
+# decord>=0.6               # fast video decoding
+# openai-whisper            # speech -> timestamped transcripts
+# open3d>=0.18              # point clouds (3D grounding)
+# faiss-cpu>=1.8            # vector index for large graphs
+# wandb                     # experiment tracking

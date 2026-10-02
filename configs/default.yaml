@@ -1,0 +1,32 @@
+backbone:
+  name: mock                       # mock | video_llava | qwen2_5_vl
+  hf_id: LanguageBind/Video-LLaVA-7B-hf
+  dtype: bfloat16
+perception:
+  vis_dim: 1024                    # LanguageBind feature size
+  llm_dim: 4096                    # 7B LLM hidden size
+graph:
+  clip_seconds: 10
+  merge_threshold: 0.80            # cosine sim for entity prototype merging
+  embed_dim: 256
+retrieval:
+  top_n: 4
+  graph_hops: 1
+reasoning:
+  min_pass_ratio: 1.0              # fraction of sub-queries a clip must satisfy
+kg:
+  entity_dim: 64
+  video_dim: 64
+  n_unary: 4
+  n_binary: 6
+  lr: 0.003
+  epochs: 60
+  ontology_weight: 0.5
+edge:
+  in_channels: 64
+  code_channels: 8                 # compressed channels (1 bit each)
+  lr: 0.002
+  epochs: 200
+spatial:
+  dim: 128
+  heads: 4
