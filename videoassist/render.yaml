@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: videoassist
+    runtime: docker
+    plan: free
+    healthCheckPath: /health

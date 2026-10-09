@@ -1,0 +1,88 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VideoAssist</title>
+<style>
+:root{--bg:#0f1218;--card:#181d27;--bd:#2a3140;--tx:#e6e9ef;--mut:#8b94a7;--ac:#4f8cff;--ok:#3ecf8e;--bad:#ff6b6b;--warn:#f5c04a}
+@media(prefers-color-scheme:light){:root{--bg:#f4f6fa;--card:#fff;--bd:#d9dfeb;--tx:#1b2230;--mut:#5d687d}}
+*{box-sizing:border-box}body{margin:0;font:14px system-ui,sans-serif;background:var(--bg);color:var(--tx)}
+header{padding:14px 20px;border-bottom:1px solid var(--bd)}header b{font-size:18px}header span{color:var(--mut);margin-left:10px}
+main{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:16px;padding:16px;max-width:1300px;margin:auto}
+@media(max-width:900px){main{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:14px}
+video{width:100%;border-radius:8px;background:#000}
+select,input,button{font:inherit;padding:8px 10px;border-radius:8px;border:1px solid var(--bd);background:var(--bg);color:var(--tx)}
+button{background:var(--ac);border-color:var(--ac);color:#fff;cursor:pointer}button.chip{background:transparent;color:var(--mut);border-color:var(--bd);font-size:12px;padding:4px 8px;margin:3px 3px 0 0}
+.row{display:flex;gap:8px;margin-bottom:10px}.row input{flex:1}
+#tl{position:relative;height:34px;background:var(--bg);border:1px solid var(--bd);border-radius:6px;margin-top:10px;cursor:pointer;overflow:hidden}
+#tl .seg{position:absolute;top:0;bottom:0;border-right:1px solid var(--bd);background:rgba(79,140,255,.12)}
+#tl .ev{position:absolute;bottom:2px;height:7px;border-radius:3px}.ev.speech{background:var(--warn)}.ev.ocr{background:var(--ok)}
+#tl .hit{position:absolute;top:0;bottom:0;background:rgba(62,207,142,.35);border:2px solid var(--ok)}#tl .ph{position:absolute;top:0;bottom:0;width:2px;background:var(--tx)}
+.legend{color:var(--mut);font-size:12px;margin-top:6px}.legend i{display:inline-block;width:10px;height:7px;border-radius:3px;margin:0 4px 0 10px}
+.badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:12px;font-weight:600}.ok{background:rgba(62,207,142,.18);color:var(--ok)}.no{background:rgba(255,107,107,.18);color:var(--bad)}
+.ans{font-size:16px;margin:8px 0}.kv{color:var(--mut);font-size:13px;margin:2px 0}.kv b{color:var(--tx)}
+.ev-i{padding:8px;border:1px solid var(--bd);border-radius:8px;margin-top:6px;cursor:pointer;font-size:13px}.ev-i:hover{border-color:var(--ac)}.ev-i small{color:var(--mut)}
+.note{color:var(--mut);font-size:12px;margin-top:10px}h3{margin:0 0 8px;font-size:14px}
+</style></head><body>
+<header><b>VideoAssist</b><span>evidence-grounded temporal QA for IT field-service videos</span></header>
+<main>
+ <section class="card">
+  <div class="row"><select id="vid" style="flex:1"></select></div>
+  <video id="v" controls playsinline></video>
+  <div id="tl" title="click to seek"></div>
+  <div class="legend"><i style="background:rgba(79,140,255,.4)"></i>segments<i class="" style="background:var(--warn)"></i>speech<i style="background:var(--ok)"></i>OCR<i style="background:rgba(62,207,142,.6)"></i>answer interval</div>
+  <div class="note" id="nov" hidden>No video file for this entry (evidence only). Add <code>&lt;id&gt;.mp4</code> next to its JSON to play it.</div>
+ </section>
+ <section>
+  <div class="card">
+   <div class="row"><input id="q" placeholder="Ask about this video…" autocomplete="off"><button id="ask">Ask</button></div>
+   <div class="row"><select id="mode" title="ablation mode"></select><span class="kv" style="align-self:center">E = full system</span></div>
+   <div id="chips"></div>
+  </div>
+  <div class="card" id="res" style="margin-top:12px" hidden>
+   <h3>Result</h3><div id="badge"></div><div class="ans" id="ans"></div><div id="meta"></div>
+   <h3 style="margin-top:12px">Supporting evidence <small style="color:var(--mut);font-weight:400">(click to jump)</small></h3><div id="evs"></div>
+  </div>
+ </section>
+</main>
+<script>
+const $=id=>document.getElementById(id),v=$("v");let tl=null,stopAt=null;
+const EX={router_installation:["When does the technician connect the power cable to the router?","What does the technician do after they mount the router on the wall bracket?","Did the technician configure a VLAN?"],
+router_troubleshooting:["What error code is shown on the router?","What does the technician do after they replace the faulty ethernet cable?","Did the technician take a photo of the serial number?"],
+device_replacement:["When does the technician restore the saved configuration backup?","What does the technician do before they mount the new router on the wall bracket?","When does the technician call the customer?"]};
+const fmt=t=>t==null?"–":`${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,"0")}`;
+const el=(tag,cls,txt)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e};
+function seek(t,end){v.currentTime=Math.max(0,t);stopAt=end??null;v.play().catch(()=>{})}
+v.addEventListener("timeupdate",()=>{if(stopAt!=null&&v.currentTime>=stopAt){v.pause();stopAt=null}
+ const ph=$("tl").querySelector(".ph");if(ph&&tl)ph.style.left=(v.currentTime/tl.duration*100)+"%"});
+async function load(id){
+ tl=await (await fetch(`/videos/${id}/timeline`)).json();
+ const info=(await (await fetch("/videos")).json()).find(x=>x.video_id==id);
+ v.src=info.video_url||"";v.style.display=info.video_url?"block":"none";$("nov").hidden=!!info.video_url;
+ const box=$("tl");box.innerHTML="";const D=tl.duration,pc=x=>x/D*100+"%";
+ tl.segments.forEach(s=>{const d=el("div","seg");d.style.left=pc(s.start);d.style.width=pc(s.end-s.start);box.append(d)});
+ tl.evidence.forEach(e=>{const d=el("div","ev "+e.modality);d.style.left=pc(e.t0);d.style.width=pc(e.t1-e.t0);box.append(d)});
+ box.append(el("div","ph"));$("res").hidden=true;
+ const ch=$("chips");ch.innerHTML="";(EX[info.operation]||[]).forEach(q=>{const b=el("button","chip",q);b.onclick=()=>{$("q").value=q;ask()};ch.append(b)});
+}
+$("tl").onclick=e=>{if(!tl)return;const r=$("tl").getBoundingClientRect();seek((e.clientX-r.left)/r.width*tl.duration)};
+async function ask(){
+ const q=$("q").value.trim();if(!q)return;$("ask").disabled=true;
+ try{const r=await fetch("/query",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({video_id:$("vid").value,query:q,mode:$("mode").value})});
+  const a=await r.json();if(!r.ok)throw new Error(a.detail||r.status);show(a)}catch(e){alert(e.message)}finally{$("ask").disabled=false}}
+function show(a){
+ $("res").hidden=false;const b=$("badge");b.innerHTML="";b.append(el("span","badge "+(a.abstained?"no":"ok"),a.abstained?"ABSTAINED – insufficient evidence":"GROUNDED ANSWER"));
+ $("ans").textContent=a.answer;const m=$("meta");m.innerHTML="";
+ const kv=(k,val)=>{const d=el("div","kv");d.append(k+": ",Object.assign(el("b"),{textContent:val}));m.append(d)};
+ kv("Interval",a.abstained?"–":`${fmt(a.start)} – ${fmt(a.end)}  (${a.start.toFixed(1)}s – ${a.end.toFixed(1)}s)`);
+ kv("Relation",a.relation||"–");kv("Confidence (heuristic)",a.confidence);kv("Latency",a.latency_ms.toFixed(1)+" ms");
+ const old=$("tl").querySelector(".hit");if(old)old.remove();
+ if(!a.abstained){const h=el("div","hit");h.style.left=a.start/tl.duration*100+"%";h.style.width=(a.end-a.start)/tl.duration*100+"%";$("tl").append(h);seek(a.start,a.end)}
+ const L=$("evs");L.innerHTML="";if(a.abstained)L.append(el("div","kv","No evidence shown: the system will not answer without supporting evidence."));
+ a.evidence.filter((e,i,arr)=>e.modality!="visual"||arr.findIndex(x=>x.modality=="visual")==i).forEach(e=>{
+  const d=el("div","ev-i");d.append(el("small",null,`${e.modality.toUpperCase()}  ${fmt(e.t0)}–${fmt(e.t1)}  `),document.createTextNode(e.text));d.onclick=()=>seek(e.t0,e.t1);L.append(d)});
+}
+$("ask").onclick=ask;$("q").addEventListener("keydown",e=>{if(e.key=="Enter")ask()});$("vid").onchange=e=>load(e.target.value);
+(async()=>{const vs=await (await fetch("/videos")).json();
+ vs.forEach(x=>{const o=el("option",null,`${x.video_id} – ${(x.operation||"").replace("_"," ")}`);o.value=x.video_id;$("vid").append(o)});
+ const modes=["E","E-noV","D","C","B","A"];modes.forEach(m=>{const o=el("option",null,"mode "+m);o.value=m;$("mode").append(o)});
+ if(vs.length)load(vs[0].video_id)})();
+</script></body></html>

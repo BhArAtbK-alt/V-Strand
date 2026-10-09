@@ -1,0 +1,11 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - run: pip install numpy pyyaml fastapi httpx pytest && pip install -e .
+      - run: pytest -q && python scripts/make_dataset.py 60 && python scripts/run_eval.py

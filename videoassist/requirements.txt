@@ -1,0 +1,9 @@
+numpy
+pyyaml
+fastapi
+uvicorn
+httpx
+pytest
+# --- real-video extraction (src/videoassist/extractors.py); also needs system ffmpeg ---
+# torch  transformers  sentence-transformers  openai-whisper  paddlepaddle  paddleocr  ultralytics
+# opencv-python-headless  faiss-cpu  "psycopg[binary]"

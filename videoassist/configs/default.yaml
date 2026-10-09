@@ -1,0 +1,13 @@
+embedding: {backend: hash, dim: 512}          # hash (offline) | st (sentence-transformers)
+segmentation: {thr: 0.35, max_len: 30.0, gap: 3.0}
+grounding: {rel_thr: 0.6, min_abs: 0.15}
+verification: {min_coverage: 0.5}
+paths: {outputs: outputs}
+media: {cut_clips: false}                      # true = also cut clip/frames with FFmpeg per query (UI uses media fragments instead)
+modes:                                         # ablations
+  A:       {modalities: [speech],                full: false, verify: false}   # transcript only
+  B:       {modalities: [visual],                full: false, verify: false}   # visual only
+  C:       {modalities: [visual, speech],        full: false, verify: false}   # visual + transcript
+  D:       {modalities: [visual, speech, ocr],   full: false, verify: false}   # + OCR
+  E-noV:   {modalities: [visual, speech, ocr],   full: true,  verify: false}   # + temporal grounding/relations
+  E:       {modalities: [visual, speech, ocr],   full: true,  verify: true}    # full: + evidence verification
