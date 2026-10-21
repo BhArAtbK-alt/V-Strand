@@ -220,17 +220,6 @@ reasoning keeps the 1 correct clip; the edge codec gives 256× payload reduction
 
 *Verify venues, years, and quoted figures against the original papers before publishing.*
 
-## 📜 Citation
-
-No paper is available yet. Until one is, cite the repository:
-
-```bibtex
-@software{vstrand2026,
-  title  = {V-STRAND: A Universal Multimodal GraphRAG Framework for Long-Context Video Understanding via Structured Reasoning},
-  author = {<Your Name(s)>},
-  year   = {2026},
-  url    = {https://github.com/<your-org>/vstrand}
-}
 ```
 
 ## 🛡️ License
